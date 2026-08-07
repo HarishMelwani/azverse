@@ -119,12 +119,51 @@
     #progress { left: 6px; right: 6px; }
     #hint { top: 40px; font-size: 12px; padding: 3px 10px; max-width: 92%; }
   }
+
+  /* ---- character meet popup ---- */
+  #meet {
+    position: fixed;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+    background: rgba(26,20,0,0.6);
+    pointer-events: auto;
+  }
+  #meet.hidden { display: none; }
+  #meet .card {
+    background: var(--ink);
+    border: 2px solid var(--chartreuse);
+    border-radius: 12px;
+    padding: 24px 28px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(212,255,40,0.35);
+    max-width: 88%;
+  }
+  #meet .name {
+    color: var(--chartreuse); font-size: 22px; font-weight: bold; margin-bottom: 4px;
+  }
+  #meet .role { color: var(--parchment); font-size: 13px; margin-bottom: 18px; }
+  #meet a {
+    display: inline-block;
+    background: var(--chartreuse); color: var(--ink);
+    padding: 10px 24px; border-radius: 8px;
+    font-family: monospace; font-weight: bold; font-size: 15px;
+    text-decoration: none; margin-bottom: 12px;
+  }
+  #meet a:hover { background: var(--orchid); }
+  #meet button {
+    display: block; margin: 0 auto;
+    background: transparent; color: var(--parchment);
+    border: 1px solid #564D3F; border-radius: 6px;
+    padding: 6px 20px; font-family: monospace; cursor: pointer;
+  }
 </style>
 </head>
 <body>
   <div id="hud">
     <span class="left"><img class="logo" src="assets/logo/Aztec-Symbol-Circle.svg" alt="Aztec"> <b id="street-name">AZVERSE</b></span>
-    <span>Visited <b id="visited">1</b> / 7</span>
+    <span>Visited <b id="visited">1</b> / 11</span>
+    <span>Met <b id="people">0</b> / 9</span>
   </div>
   <div id="progress"><i id="progress-bar"></i></div>
   <div id="wrap">
@@ -136,6 +175,14 @@
     <button id="btn-jump" class="tbtn" aria-label="Jump">JUMP</button>
     <button id="btn-enter" class="tbtn" aria-label="Open page">OPEN</button>
     <button id="btn-right" class="tbtn" aria-label="Walk right">&#9654;</button>
+  </div>
+  <div id="meet" class="hidden">
+    <div class="card">
+      <div class="name" id="meet-name"></div>
+      <div class="role" id="meet-role"></div>
+      <a id="meet-link" href="#" target="_blank" rel="noopener">Open on X</a>
+      <button id="meet-close">Walk on</button>
+    </div>
   </div>
 
 <script>
@@ -163,6 +210,13 @@
   const hintEl = document.getElementById('hint');
   const streetNameEl = document.getElementById('street-name');
   const visitedEl = document.getElementById('visited');
+  const peopleEl = document.getElementById('people');
+  const meetEl = document.getElementById('meet');
+  const meetNameEl = document.getElementById('meet-name');
+  const meetRoleEl = document.getElementById('meet-role');
+  const meetLinkEl = document.getElementById('meet-link');
+  const meetCloseEl = document.getElementById('meet-close');
+  let meetShown = null;
 
   // ---------- world / sites ----------
   const WORLD_W = 3500;
@@ -181,6 +235,20 @@
     { id: 'github',     name: 'GitHub',        x: 3070, width: 215, color: '#564D3F', label: 'Source',     url: 'https://github.com/AztecProtocol',           visited: false },
   ];
   const SITE_COUNT = SITES.length;
+
+  // ---------- characters (team) ----------
+  const PEOPLE = [
+    { name: 'Zac',               x: 340,  color: '#FF1A1A', role: 'President & Co-founder, Aztec Foundation', url: 'https://x.com/Zac_Aztec',           met: false },
+    { name: 'Joe',               x: 620,  color: '#FF2DF4', role: 'CEO, Aztec Labs',                            url: 'https://x.com/jaosef',               met: false },
+    { name: 'Arnaud',            x: 900,  color: '#2BFAE9', role: 'CEO, Aztec Foundation',                      url: 'https://x.com/Arnaudschenk',         met: false },
+    { name: 'Josh',              x: 1180, color: '#A9CC1F', role: 'Head of Devrel',                             url: 'https://x.com/critesjosh_',          met: false },
+    { name: 'Amin',              x: 1470, color: '#CC24C3', role: 'Product, Decentralization',                 url: 'https://x.com/Amin_3X',              met: false },
+    { name: 'Savio',             x: 1760, color: '#19958C', role: 'Product, Noir',                             url: 'https://x.com/Savio_Sou_',           met: false },
+    { name: 'David',             x: 2050, color: '#335380', role: 'Product Marketing',                         url: 'https://x.com/DavidSteinrueck',      met: false },
+    { name: 'ItsTymo',           x: 2340, color: '#FF6AEA', role: 'Social Media Manager',                      url: 'https://x.com/ItsTymo',              met: false },
+    { name: 'Ciara Nightingale', x: 2630, color: '#564D3F', role: 'Technical Educator',                        url: 'https://x.com/CiaraNightingal',      met: false },
+  ];
+  const PEOPLE_COUNT = PEOPLE.length;
 
   // ---------- backdrop images (Aztec brand photography) ----------
   const BG_COUNT = 30;
@@ -224,12 +292,15 @@
     paused = false;
     minimap = true;
     SITES.forEach(s => s.visited = s.id === 'home');
+    PEOPLE.forEach(p => p.met = false);
     updateHUD();
   }
 
   function updateHUD() {
     const n = SITES.filter(s => s.visited).length;
+    const m = PEOPLE.filter(p => p.met).length;
     visitedEl.textContent = n + ' / ' + SITE_COUNT;
+    peopleEl.textContent = m + ' / ' + PEOPLE_COUNT;
     streetNameEl.textContent = 'AZVERSE';
   }
 
@@ -272,10 +343,27 @@
   bindTap('btn-enter', () => tryEnter());
 
   function tryEnter() {
+    const p = personAt(player.x);
+    if (p) { showMeet(p); return; }
     const s = siteAt(player.x);
     if (!s) { hintEl.textContent = 'Nothing here... walk to a building door.'; return; }
     openPage(s);
   }
+
+  function personAt(x) {
+    return PEOPLE.find(p => Math.abs(x - p.x) < 40) || null;
+  }
+
+  function showMeet(p) {
+    p.met = true;
+    meetShown = p;
+    meetNameEl.textContent = p.name;
+    meetRoleEl.textContent = p.role;
+    meetLinkEl.href = p.url;
+    meetEl.classList.remove('hidden');
+    updateHUD();
+  }
+  meetCloseEl.addEventListener('click', () => { meetEl.classList.add('hidden'); meetShown = null; });
 
   function openPage(s) {
     s.visited = true;
@@ -331,6 +419,12 @@
       hintEl.textContent = 'Press ENTER to open ' + s.url;
     } else {
       hintEl.textContent = '';
+    }
+
+    // auto-meet characters
+    const p = personAt(player.x);
+    if (p && !meetShown && meetEl.classList.contains('hidden')) {
+      showMeet(p);
     }
   }
 
@@ -537,8 +631,88 @@
     ctx.restore();
   }
 
-  function drawStreet() {
-    // sidewalk
+  function drawCharacter(p) {
+    const sx = p.x - cam;
+    if (sx < -60 || sx > W + 60) return;
+    const h = 44, w = 22;
+
+    ctx.save();
+    ctx.translate(sx, GROUND - h);
+
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.ellipse(0, h + 2, 15, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // legs
+    ctx.strokeStyle = '#1A1400';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-3, h - 16); ctx.lineTo(-3, h);
+    ctx.moveTo(3, h - 16); ctx.lineTo(3, h);
+    ctx.stroke();
+
+    // body (team color hoodie)
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.roundRect(-w / 2, h - 38, w, 24, 6);
+    ctx.fill();
+    // pocket line
+    ctx.strokeStyle = '#1A1400';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-4, h - 18); ctx.lineTo(4, h - 18);
+    ctx.stroke();
+
+    // head
+    ctx.fillStyle = '#2E0026';
+    ctx.beginPath();
+    ctx.arc(0, h - 42, 10, Math.PI, 0);
+    ctx.fill();
+    // hood peak
+    ctx.beginPath();
+    ctx.moveTo(-10, h - 44);
+    ctx.quadraticCurveTo(0, h - 58, 10, h - 44);
+    ctx.closePath();
+    ctx.fill();
+
+    // face
+    ctx.fillStyle = '#F2EEE1';
+    ctx.beginPath();
+    ctx.arc(0, h - 42, 6.5, 0, Math.PI * 2);
+    ctx.fill();
+    // eyes
+    ctx.fillStyle = '#1A1400';
+    ctx.beginPath();
+    ctx.arc(-2.5, h - 43, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(2.5, h - 43, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // name tag + met indicator
+    ctx.fillStyle = p === meetShown ? '#D4FF28' : (p.met ? '#2BFAE9' : '#918B7F');
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.name, sx, GROUND - h - 10);
+    // "!" marker when not yet met
+    if (!p.met) {
+      ctx.fillStyle = '#FF2DF4';
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText('!', sx + p.name.length * 3 + 8, GROUND - h - 10);
+    }
+    ctx.textAlign = 'left';
+  }
+
+  function drawCharacters() {
+    for (const p of PEOPLE) drawCharacter(p);
+  }
+
+  function drawStreet() {    // sidewalk
     ctx.fillStyle = '#3a3426';
     ctx.fillRect(0, GROUND - 4, W, 4);
     // pavement
@@ -582,6 +756,7 @@
     drawBuildings();
     drawLamps();
     drawStreet();
+    drawCharacters();
     drawMaskedMan();
     drawMinimap();
   }
