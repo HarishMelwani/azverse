@@ -70,18 +70,6 @@
   #hud .left { display: flex; align-items: center; gap: 8px; }
   #hud b { color: var(--chartreuse); }
   #hud img.logo { height: 22px; }
-  #controls {
-    position: fixed;
-    bottom: 14px; left: 0; right: 0;
-    font-size: 13px; color: #918b7f; text-align: center; line-height: 1.7;
-    z-index: 30;
-    pointer-events: none;
-    text-shadow: 0 0 6px #000;
-  }
-  #controls kbd {
-    background: var(--oxblood); border: 1px solid #804033; border-bottom-width: 2px;
-    border-radius: 3px; padding: 1px 6px; font-size: 12px; color: var(--parchment);
-  }
   #progress {
     position: fixed;
     bottom: 0; left: 18px; right: 6px;
@@ -127,7 +115,6 @@
     }
     #hud { font-size: 11px; padding: 0 10px; }
     #hud img.logo { height: 16px; }
-    #controls { display: none; }
     #touch-controls { display: block; }
     #progress { left: 6px; right: 6px; }
     #hint { top: 40px; font-size: 12px; padding: 3px 10px; max-width: 92%; }
@@ -138,18 +125,11 @@
   <div id="hud">
     <span class="left"><img class="logo" src="assets/logo/Aztec-Symbol-Circle.svg" alt="Aztec"> <b id="street-name">AZVERSE</b></span>
     <span>Visited <b id="visited">1</b> / 7</span>
-    <span>Hint: ENTER to open a page</span>
   </div>
   <div id="progress"><i id="progress-bar"></i></div>
   <div id="wrap">
     <div id="hint"></div>
     <canvas id="game" width="960" height="520"></canvas>
-  </div>
-  <div id="controls">
-    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> / <kbd>A</kbd> <kbd>D</kbd> walk &nbsp;&nbsp;
-    <kbd>SPACE</kbd> jump &nbsp;&nbsp;
-    <kbd>ENTER</kbd> open page in new tab &nbsp;&nbsp;
-    <kbd>M</kbd> minimap &nbsp;&nbsp; <kbd>P</kbd> pause
   </div>
   <div id="touch-controls">
     <button id="btn-left" class="tbtn" aria-label="Walk left">&#9664;</button>
