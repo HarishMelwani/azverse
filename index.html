@@ -120,43 +120,39 @@
     #hint { top: 40px; font-size: 12px; padding: 3px 10px; max-width: 92%; }
   }
 
-  /* ---- character meet popup ---- */
+  /* ---- character meet popup (light toast) ---- */
   #meet {
     position: fixed;
-    inset: 0;
-    display: flex; align-items: center; justify-content: center;
+    top: 52px; left: 50%;
+    transform: translateX(-50%);
     z-index: 50;
-    background: rgba(26,20,0,0.6);
-    pointer-events: auto;
+    pointer-events: none;
   }
   #meet.hidden { display: none; }
   #meet .card {
-    background: var(--ink);
-    border: 2px solid var(--chartreuse);
-    border-radius: 12px;
-    padding: 24px 28px;
-    text-align: center;
-    box-shadow: 0 0 30px rgba(212,255,40,0.35);
-    max-width: 88%;
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(26,20,0,0.92);
+    border: 1px solid var(--chartreuse);
+    border-radius: 10px;
+    padding: 10px 14px;
+    box-shadow: 0 0 22px rgba(212,255,40,0.3);
+    max-width: 94vw;
+    pointer-events: auto;
+    cursor: pointer;
   }
+  #meet .card:hover { background: var(--aubergine); }
+  #meet .who { text-align: left; }
   #meet .name {
-    color: var(--chartreuse); font-size: 22px; font-weight: bold; margin-bottom: 4px;
+    color: var(--chartreuse); font-size: 15px; font-weight: bold; line-height: 1.2;
   }
-  #meet .role { color: var(--parchment); font-size: 13px; margin-bottom: 18px; }
-  #meet a {
-    display: inline-block;
+  #meet .role { color: var(--parchment); font-size: 11px; opacity: 0.85; }
+  #meet .cta {
+    flex-shrink: 0;
     background: var(--chartreuse); color: var(--ink);
-    padding: 10px 24px; border-radius: 8px;
-    font-family: monospace; font-weight: bold; font-size: 15px;
-    text-decoration: none; margin-bottom: 12px;
+    padding: 6px 14px; border-radius: 6px;
+    font-family: monospace; font-weight: bold; font-size: 13px;
   }
-  #meet a:hover { background: var(--orchid); }
-  #meet button {
-    display: block; margin: 0 auto;
-    background: transparent; color: var(--parchment);
-    border: 1px solid #564D3F; border-radius: 6px;
-    padding: 6px 20px; font-family: monospace; cursor: pointer;
-  }
+  #meet .card:hover .cta { background: var(--orchid); }
 </style>
 </head>
 <body>
@@ -177,11 +173,12 @@
     <button id="btn-right" class="tbtn" aria-label="Walk right">&#9654;</button>
   </div>
   <div id="meet" class="hidden">
-    <div class="card">
-      <div class="name" id="meet-name"></div>
-      <div class="role" id="meet-role"></div>
-      <a id="meet-link" href="#" target="_blank" rel="noopener">Open on X</a>
-      <button id="meet-close">Walk on</button>
+    <div class="card" id="meet-card" title="Click to open on X">
+      <span class="who">
+        <div class="name" id="meet-name"></div>
+        <div class="role" id="meet-role"></div>
+      </span>
+      <span class="cta">Open on X</span>
     </div>
   </div>
 
@@ -214,9 +211,9 @@
   const meetEl = document.getElementById('meet');
   const meetNameEl = document.getElementById('meet-name');
   const meetRoleEl = document.getElementById('meet-role');
-  const meetLinkEl = document.getElementById('meet-link');
-  const meetCloseEl = document.getElementById('meet-close');
+  const meetCardEl = document.getElementById('meet-card');
   let meetShown = null;
+  let meetUrl = '';
 
   // ---------- world / sites ----------
   const WORLD_W = 3500;
@@ -357,13 +354,17 @@
   function showMeet(p) {
     p.met = true;
     meetShown = p;
+    meetUrl = p.url;
     meetNameEl.textContent = p.name;
     meetRoleEl.textContent = p.role;
-    meetLinkEl.href = p.url;
     meetEl.classList.remove('hidden');
     updateHUD();
   }
-  meetCloseEl.addEventListener('click', () => { meetEl.classList.add('hidden'); meetShown = null; });
+  meetCardEl.addEventListener('click', () => {
+    if (meetUrl) window.open(meetUrl, '_blank', 'noopener');
+    meetEl.classList.add('hidden');
+    meetShown = null;
+  });
 
   function openPage(s) {
     s.visited = true;
@@ -425,6 +426,9 @@
     const p = personAt(player.x);
     if (p && !meetShown && meetEl.classList.contains('hidden')) {
       showMeet(p);
+    } else if (!p && meetShown) {
+      meetEl.classList.add('hidden');
+      meetShown = null;
     }
   }
 
