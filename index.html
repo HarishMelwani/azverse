@@ -141,11 +141,14 @@
     cursor: pointer;
   }
   #meet .card:hover { background: var(--aubergine); }
-  #meet .who { text-align: left; }
+  #meet .who { text-align: left; min-width: 0; }
   #meet .name {
     color: var(--chartreuse); font-size: 15px; font-weight: bold; line-height: 1.2;
   }
-  #meet .role { color: var(--parchment); font-size: 11px; opacity: 0.85; }
+  #meet .role {
+    color: var(--parchment); font-size: 11px; opacity: 0.85;
+    overflow-wrap: break-word; word-break: break-word;
+  }
   #meet .cta {
     flex-shrink: 0;
     background: var(--chartreuse); color: var(--ink);
@@ -246,7 +249,8 @@
     ]},
   ];
 
-  // main street = one building per category
+  // main street = one building per category + Meet The Team
+  const TEAM_CAT = { id: 'team', name: 'Meet The Team', emoji: '🤝', color: '#FF6AEA', links: [] };
   const MAIN_BUILDINGS = [];
   (function () {
     let x = 260;
@@ -254,13 +258,19 @@
       MAIN_BUILDINGS.push({ kind: 'cat', id: c.id, name: c.emoji + ' ' + c.name, color: c.color, x, width: 300 });
       x += 500;
     });
+    MAIN_BUILDINGS.push({ kind: 'cat', id: 'team', name: TEAM_CAT.emoji + ' ' + TEAM_CAT.name, color: TEAM_CAT.color, x, width: 300 });
   })();
+
+  function catById(id) {
+    return CATS.find(c => c.id === id) || (id === 'team' ? TEAM_CAT : null);
+  }
 
   // sub street per category: EXIT first, then its links
   const SUB_CACHE = {};
   function subBuild(cat) {
     const bs = [];
     bs.push({ kind: 'exit', id: 'exit', name: '⬅ EXIT', color: '#564D3F', x: 300, width: 240 });
+    if (cat.id === 'team') return bs; // characters stand in this street instead
     let x = 650;
     cat.links.forEach((l, i) => {
       bs.push({ kind: 'link', id: 'link' + i, name: l.name, color: cat.color, x, width: 280, url: l.url });
@@ -269,30 +279,34 @@
     return bs;
   }
   function streetFor(cat) {
-    if (!cat) return { isMain: true, name: 'AZVERSE', color: '#1A1400', buildings: MAIN_BUILDINGS };
-    return { isMain: false, name: cat.emoji + ' ' + cat.name, color: cat.color, buildings: (SUB_CACHE[cat.id] || (SUB_CACHE[cat.id] = subBuild(cat))) };
+    if (!cat) return { id: 'main', isMain: true, name: 'AZVERSE', color: '#1A1400', buildings: MAIN_BUILDINGS };
+    return { id: cat.id, isMain: false, name: cat.emoji + ' ' + cat.name, color: cat.color, buildings: (SUB_CACHE[cat.id] || (SUB_CACHE[cat.id] = subBuild(cat))) };
   }
   let street = streetFor(null);
   function currentBuildings() { return street.buildings; }
   function worldW() {
+    if (street.id === 'team') {
+      const lastP = PEOPLE[PEOPLE.length - 1];
+      return Math.max(3500, lastP.x + 150);
+    }
     const bs = currentBuildings();
     const last = bs[bs.length - 1];
     return Math.max(3500, last.x + last.width + 150);
   }
-  const TOTAL_SITES = CATS.length + CATS.reduce((t, c) => t + c.links.length, 0);
+  const TOTAL_SITES = (CATS.length + 1) + CATS.reduce((t, c) => t + c.links.length, 0);
   const visitedIds = new Set();
 
   // ---------- characters (team) ----------
   const PEOPLE = [
-    { name: 'Zac',               x: 440,  color: '#FF1A1A', role: 'President & Co-founder, Aztec Foundation', url: 'https://x.com/Zac_Aztec',           met: false },
-    { name: 'Joe',               x: 722,  color: '#FF2DF4', role: 'CEO, Aztec Labs',                            url: 'https://x.com/jaosef',               met: false },
-    { name: 'Arnaud',            x: 997,  color: '#2BFAE9', role: 'CEO, Aztec Foundation',                      url: 'https://x.com/Arnaudschenk',         met: false },
-    { name: 'Josh',              x: 1282, color: '#A9CC1F', role: 'Head of Devrel',                             url: 'https://x.com/critesjosh_',          met: false },
-    { name: 'Amin',              x: 1580, color: '#CC24C3', role: 'Product, Decentralization',                 url: 'https://x.com/Amin_3X',              met: false },
-    { name: 'Savio',             x: 1872, color: '#19958C', role: 'Product, Noir',                             url: 'https://x.com/Savio_Sou_',           met: false },
-    { name: 'David',             x: 2160, color: '#335380', role: 'Product Marketing',                         url: 'https://x.com/DavidSteinrueck',      met: false },
-    { name: 'ItsTymo',           x: 2442, color: '#FF6AEA', role: 'Social Media Manager',                      url: 'https://x.com/ItsTymo',              met: false },
-    { name: 'Ciara Nightingale', x: 2742, color: '#564D3F', role: 'Technical Educator',                        url: 'https://x.com/CiaraNightingal',      met: false },
+    { name: 'Zac',               x: 680,  color: '#FF1A1A', role: 'President & Co-founder, Aztec Foundation', url: 'https://x.com/Zac_Aztec',           met: false },
+    { name: 'Joe',               x: 1010, color: '#FF2DF4', role: 'CEO, Aztec Labs',                            url: 'https://x.com/jaosef',               met: false },
+    { name: 'Arnaud',            x: 1340, color: '#2BFAE9', role: 'CEO, Aztec Foundation',                      url: 'https://x.com/Arnaudschenk',         met: false },
+    { name: 'Josh',              x: 1670, color: '#A9CC1F', role: 'Head of Devrel',                             url: 'https://x.com/critesjosh_',          met: false },
+    { name: 'Amin',              x: 2000, color: '#CC24C3', role: 'Product, Decentralization',                 url: 'https://x.com/Amin_3X',              met: false },
+    { name: 'Savio',             x: 2330, color: '#19958C', role: 'Product, Noir',                             url: 'https://x.com/Savio_Sou_',           met: false },
+    { name: 'David',             x: 2660, color: '#335380', role: 'Product Marketing',                         url: 'https://x.com/DavidSteinrueck',      met: false },
+    { name: 'ItsTymo',           x: 2990, color: '#FF6AEA', role: 'Social Media Manager',                      url: 'https://x.com/ItsTymo',              met: false },
+    { name: 'Ciara Nightingale', x: 3320, color: '#564D3F', role: 'Technical Educator',                        url: 'https://x.com/CiaraNightingal',      met: false },
   ];
   const PEOPLE_COUNT = PEOPLE.length;
 
@@ -403,12 +417,13 @@
   }
 
   function enterCategory(b) {
-    const cat = CATS.find(c => c.id === b.id);
+    const cat = catById(b.id);
     street = streetFor(cat);
     visitedIds.add(b.id);
     updateHUD();
-    // place player left of the EXIT building, facing right
-    player.x = 130;
+    // start exactly at the exit building's door
+    const exit = street.buildings.find(x => x.kind === 'exit');
+    player.x = exit ? exit.x + exit.width / 2 : 130;
     player.facing = 1;
     cam = 0;
     hintEl.textContent = 'Inside ' + street.name + ' — the EXIT building returns to the main street';
@@ -417,7 +432,9 @@
   function exitStreet() {
     street = streetFor(null);
     updateHUD();
-    player.x = 130;
+    // start back at the first main building's door
+    const first = MAIN_BUILDINGS[0];
+    player.x = first.x + first.width / 2;
     player.facing = 1;
     cam = 0;
     hintEl.textContent = 'Back on the main street — walk to a building door';
@@ -429,6 +446,7 @@
   }
 
   function personAt(x) {
+    if (street.id !== 'team') return null;
     return PEOPLE.find(p => Math.abs(x - p.x) < 40) || null;
   }
 
@@ -579,22 +597,25 @@
         }
       }
       // sign
-      ctx.fillStyle = '#1A1400';
-      const sw = Math.min(300, s.name.length * 8 + 20);
-      const sh = 26;
-      ctx.fillRect(sx + s.width / 2 - sw / 2, GROUND - height + 14, sw, sh);
-      ctx.strokeStyle = 'rgba(212,255,40,0.6)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(sx + s.width / 2 - sw / 2, GROUND - height + 14, sw, sh);
-      ctx.fillStyle = '#D4FF28';
       ctx.font = '13px monospace';
       ctx.textAlign = 'center';
+      const hasLogo = s.kind === 'cat' && s.id === CATS[0].id && logoImg.complete && logoImg.naturalWidth;
+      const txtW = ctx.measureText(s.name).width;
+      const sw = Math.min(s.width - 10, Math.max(60, txtW + (hasLogo ? 44 : 24)));
+      const sh = 26;
+      const sxp = sx + s.width / 2;
+      ctx.fillStyle = '#1A1400';
+      ctx.fillRect(sxp - sw / 2, GROUND - height + 14, sw, sh);
+      ctx.strokeStyle = 'rgba(212,255,40,0.6)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(sxp - sw / 2, GROUND - height + 14, sw, sh);
+      ctx.fillStyle = '#D4FF28';
       // show a small logo on the first (home-ish) building
-      if (s.kind === 'cat' && s.id === CATS[0].id && logoImg.complete && logoImg.naturalWidth) {
-        ctx.drawImage(logoImg, sx + s.width / 2 - sw / 2 + 5, GROUND - height + 17, 20, 20);
-        ctx.fillText(s.name, sx + s.width / 2 + 14, GROUND - height + 31);
+      if (hasLogo) {
+        ctx.drawImage(logoImg, sxp - sw / 2 + 5, GROUND - height + 17, 20, 20);
+        ctx.fillText(s.name, sxp + 16, GROUND - height + 31);
       } else {
-        ctx.fillText(s.name, sx + s.width / 2, GROUND - height + 31);
+        ctx.fillText(s.name, sxp, GROUND - height + 31);
       }
 
       // door
@@ -776,20 +797,35 @@
     ctx.restore();
 
     // name tag + met indicator
-    ctx.fillStyle = p === meetShown ? '#D4FF28' : (p.met ? '#2BFAE9' : '#918B7F');
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(p.name, sx, GROUND - h - 10);
+    const nameW = ctx.measureText(p.name).width;
+    const tagC = p === meetShown ? '#D4FF28' : (p.met ? '#2BFAE9' : '#E8E2D0');
+    // dark pill behind the name
+    ctx.fillStyle = 'rgba(26,20,0,0.88)';
+    ctx.beginPath();
+    ctx.roundRect(sx - nameW / 2 - 7, GROUND - h - 26, nameW + 14, 16, 4);
+    ctx.fill();
+    ctx.strokeStyle = tagC;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx - nameW / 2 - 7, GROUND - h - 26, nameW + 14, 16);
+    ctx.fillStyle = tagC;
+    ctx.fillText(p.name, sx, GROUND - h - 14);
     // "!" marker when not yet met
     if (!p.met) {
-      ctx.fillStyle = '#FF2DF4';
-      ctx.font = 'bold 15px monospace';
-      ctx.fillText('!', sx + p.name.length * 3 + 8, GROUND - h - 10);
+      ctx.fillStyle = 'rgba(255,45,244,0.9)';
+      ctx.beginPath();
+      ctx.arc(sx + nameW / 2 + 12, GROUND - h - 18, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1A1400';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText('!', sx + nameW / 2 + 12, GROUND - h - 14);
     }
     ctx.textAlign = 'left';
   }
 
   function drawCharacters() {
+    if (street.id !== 'team') return;
     for (const p of PEOPLE) drawCharacter(p);
   }
 
@@ -824,6 +860,16 @@
       ctx.beginPath();
       ctx.arc(bx, my + mh / 2, visitedIds.has(s.id) ? 5 : 3.5, 0, Math.PI * 2);
       ctx.fill();
+    }
+    // team members on the team street
+    if (street.id === 'team') {
+      for (const p of PEOPLE) {
+        const bx = mx + p.x * scale;
+        ctx.fillStyle = p.met ? '#D4FF28' : '#FF2DF4';
+        ctx.beginPath();
+        ctx.arc(bx, my + mh / 2, p.met ? 3.5 : 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     // player
     ctx.fillStyle = '#FF2DF4';
