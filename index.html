@@ -283,6 +283,7 @@
     return { id: cat.id, isMain: false, name: cat.emoji + ' ' + cat.name, color: cat.color, buildings: (SUB_CACHE[cat.id] || (SUB_CACHE[cat.id] = subBuild(cat))) };
   }
   let street = streetFor(null);
+  let returnX = 0;
   function currentBuildings() { return street.buildings; }
   function worldW() {
     if (street.id === 'team') {
@@ -418,6 +419,8 @@
 
   function enterCategory(b) {
     const cat = catById(b.id);
+    // remember where we came from so EXIT brings us back there
+    returnX = b.x + b.width / 2;
     street = streetFor(cat);
     visitedIds.add(b.id);
     updateHUD();
@@ -432,9 +435,8 @@
   function exitStreet() {
     street = streetFor(null);
     updateHUD();
-    // start back at the first main building's door
-    const first = MAIN_BUILDINGS[0];
-    player.x = first.x + first.width / 2;
+    // go back to the same building you entered from
+    player.x = returnX || (MAIN_BUILDINGS[0].x + MAIN_BUILDINGS[0].width / 2);
     player.facing = 1;
     cam = 0;
     hintEl.textContent = 'Back on the main street — walk to a building door';
