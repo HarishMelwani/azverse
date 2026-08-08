@@ -293,11 +293,11 @@
   function worldW() {
     if (street.id === 'team') {
       const lastP = PEOPLE[PEOPLE.length - 1];
-      return Math.max(3500, lastP.x + 150);
+      return lastP.x + 150;
     }
     const bs = currentBuildings();
     const last = bs[bs.length - 1];
-    return Math.max(3500, last.x + last.width + 150);
+    return last.x + last.width + 150;
   }
   const TOTAL_SITES = (CATS.length + 1) + CATS.reduce((t, c) => t + c.links.length, 0);
   const visitedIds = new Set();
