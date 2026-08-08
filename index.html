@@ -198,9 +198,9 @@
     moonX = W - 90;
     if (player) {
       player.y = GROUND - player.h;
-      player.x = Math.max(30, Math.min(player.x, WORLD_W - 30));
+      player.x = Math.max(30, Math.min(player.x, worldW() - 30));
     }
-    if (cam !== undefined) cam = Math.max(0, Math.min(cam, WORLD_W - W));
+    if (cam !== undefined) cam = Math.max(0, Math.min(cam, worldW() - W));
   }
   window.addEventListener('resize', resize);
 
@@ -215,23 +215,72 @@
   let meetShown = null;
   let meetUrl = '';
 
-  // ---------- world / sites ----------
-  const WORLD_W = 3500;
-
-  const SITES = [
-    { id: 'home',       name: 'aztec.network', x: 180,  width: 230, color: '#FF1A1A', label: 'Home',       url: 'https://aztec.network/',                     visited: true },
-    { id: 'developers', name: '/developers',   x: 470,  width: 215, color: '#19534A', label: 'Developers', url: 'https://aztec.network/developers',          visited: false },
-    { id: 'noir',       name: '/noir',         x: 760,  width: 195, color: '#80336A', label: 'Noir',       url: 'https://aztec.network/noir',                visited: false },
-    { id: 'basics',     name: '/basics',       x: 1040, width: 195, color: '#335380', label: 'Basics',     url: 'https://aztec.network/basics',              visited: false },
-    { id: 'network',    name: '/network',      x: 1330, width: 210, color: '#19958C', label: 'Network',    url: 'https://aztec.network/network',             visited: false },
-    { id: 'alpha-v5',   name: '/alpha-v5',     x: 1620, width: 215, color: '#CC24C3', label: 'Alpha V5',   url: 'https://aztec.network/alpha-v5',            visited: false },
-    { id: 'projects',   name: '/projects',     x: 1910, width: 210, color: '#FF5555', label: 'Projects',   url: 'https://aztec.network/projects',            visited: false },
-    { id: 'blog',       name: '/blog',         x: 2200, width: 195, color: '#A9CC1F', label: 'Blog',       url: 'https://aztec.network/blog',                visited: false },
-    { id: 'research',   name: '/research',     x: 2490, width: 215, color: '#29665F', label: 'Research',   url: 'https://aztec.network/research',            visited: false },
-    { id: 'roadmap',    name: '/roadmap',      x: 2780, width: 210, color: '#FF6AEA', label: 'Roadmap',    url: 'https://aztec.network/roadmap',             visited: false },
-    { id: 'github',     name: 'GitHub',        x: 3070, width: 215, color: '#564D3F', label: 'Source',     url: 'https://github.com/AztecProtocol',           visited: false },
+  // ---------- world / categories ----------
+  const CATS = [
+    { id: 'general',    name: 'General',               emoji: '🌐', color: '#FF1A1A', links: [
+      { name: 'Aztec Network',       url: 'https://aztec.network/',                        },
+      { name: 'Aztec Blog',          url: 'https://aztec.network/blog',                    },
+    ]},
+    { id: 'community',  name: 'Community',             emoji: '🌍', color: '#2BFAE9', links: [
+      { name: 'X Aztec Network',     url: 'https://x.com/aztecnetwork',                    },
+      { name: 'X Aztec Labs',        url: 'https://x.com/AztecLabs_',                      },
+      { name: 'X Aztec Foundation',  url: 'https://x.com/aztecFND',                        },
+      { name: 'X Aztec Dev',         url: 'https://x.com/Aztec_Dev',                       },
+      { name: 'YouTube',             url: 'https://www.youtube.com/channel/UCyr94cC0lyNJkyCmmLwbh7A', },
+    ]},
+    { id: 'developers', name: 'Developers',            emoji: '👩‍💻', color: '#CC24C3', links: [
+      { name: 'Aztec Docs',          url: 'https://docs.aztec.network/',                   },
+      { name: 'Awesome-Aztec',       url: 'https://github.com/AztecProtocol/awesome-aztec', },
+      { name: 'Github Starter',      url: 'https://github.com/AztecProtocol/aztec-starter', },
+    ]},
+    { id: 'governance', name: 'Governance',            emoji: '🏛️', color: '#FF2DF4', links: [
+      { name: 'AZIPs / Governance',  url: 'https://github.com/AztecProtocol/governance',   },
+      { name: 'Governance Dashboard',url: 'https://aztecgov.nethermind.io/',               },
+      { name: 'Forum',               url: 'https://forum.aztec.network/',                  },
+    ]},
+    { id: 'sequencers', name: 'Sequencers & Network',  emoji: '⚙️', color: '#19958C', links: [
+      { name: 'Aztec Staking',       url: 'https://stake.aztec.network/',                  },
+      { name: 'Dashtec',             url: 'https://dashtec.xyz/',                          },
+      { name: 'Aztec Vision',        url: 'https://aztec.vision/',                         },
+      { name: 'AztecScan',           url: 'https://aztecscan.xyz/',                        },
+    ]},
   ];
-  const SITE_COUNT = SITES.length;
+
+  // main street = one building per category
+  const MAIN_BUILDINGS = [];
+  (function () {
+    let x = 260;
+    CATS.forEach(c => {
+      MAIN_BUILDINGS.push({ kind: 'cat', id: c.id, name: c.emoji + ' ' + c.name, color: c.color, x, width: 300 });
+      x += 500;
+    });
+  })();
+
+  // sub street per category: EXIT first, then its links
+  const SUB_CACHE = {};
+  function subBuild(cat) {
+    const bs = [];
+    bs.push({ kind: 'exit', id: 'exit', name: '⬅ EXIT', color: '#564D3F', x: 300, width: 240 });
+    let x = 650;
+    cat.links.forEach((l, i) => {
+      bs.push({ kind: 'link', id: 'link' + i, name: l.name, color: cat.color, x, width: 280, url: l.url });
+      x += 480;
+    });
+    return bs;
+  }
+  function streetFor(cat) {
+    if (!cat) return { isMain: true, name: 'AZVERSE', color: '#1A1400', buildings: MAIN_BUILDINGS };
+    return { isMain: false, name: cat.emoji + ' ' + cat.name, color: cat.color, buildings: (SUB_CACHE[cat.id] || (SUB_CACHE[cat.id] = subBuild(cat))) };
+  }
+  let street = streetFor(null);
+  function currentBuildings() { return street.buildings; }
+  function worldW() {
+    const bs = currentBuildings();
+    const last = bs[bs.length - 1];
+    return Math.max(3500, last.x + last.width + 150);
+  }
+  const TOTAL_SITES = CATS.length + CATS.reduce((t, c) => t + c.links.length, 0);
+  const visitedIds = new Set();
 
   // ---------- characters (team) ----------
   const PEOPLE = [
@@ -279,7 +328,7 @@
 
   function reset() {
     player = {
-      x: SITES[0].x + SITES[0].width / 2,
+      x: currentBuildings()[0].x + currentBuildings()[0].width / 2,
       y: GROUND - 34,
       vx: 0, vy: 0, w: 22, h: 44,
       facing: 1, walkPhase: 0, grounded: true,
@@ -288,17 +337,17 @@
     keys = {};
     paused = false;
     minimap = true;
-    SITES.forEach(s => s.visited = s.id === 'home');
+    currentBuildings().forEach(s => visitedIds.delete(s.id));
     PEOPLE.forEach(p => p.met = false);
     updateHUD();
   }
 
   function updateHUD() {
-    const n = SITES.filter(s => s.visited).length;
+    const n = visitedIds.size;
     const m = PEOPLE.filter(p => p.met).length;
-    visitedEl.textContent = n + ' / ' + SITE_COUNT;
+    visitedEl.textContent = n + ' / ' + TOTAL_SITES;
     peopleEl.textContent = m + ' / ' + PEOPLE_COUNT;
-    streetNameEl.textContent = 'AZVERSE';
+    streetNameEl.textContent = street.isMain ? 'AZVERSE' : street.name;
   }
 
   // ---------- input ----------
@@ -342,9 +391,41 @@
   function tryEnter() {
     const p = personAt(player.x);
     if (p) { showMeet(p); return; }
-    const s = siteAt(player.x);
-    if (!s) { hintEl.textContent = 'Nothing here... walk to a building door.'; return; }
-    openPage(s);
+    const b = buildingAt(player.x);
+    if (!b) { hintEl.textContent = 'Nothing here... walk to a building door.'; return; }
+    if (b.kind === 'exit') {
+      exitStreet();
+    } else if (b.kind === 'cat') {
+      enterCategory(b);
+    } else if (b.kind === 'link') {
+      openUrl(b.url);
+    }
+  }
+
+  function enterCategory(b) {
+    const cat = CATS.find(c => c.id === b.id);
+    street = streetFor(cat);
+    visitedIds.add(b.id);
+    updateHUD();
+    // place player left of the EXIT building, facing right
+    player.x = 130;
+    player.facing = 1;
+    cam = 0;
+    hintEl.textContent = 'Inside ' + street.name + ' — the EXIT building returns to the main street';
+  }
+
+  function exitStreet() {
+    street = streetFor(null);
+    updateHUD();
+    player.x = 130;
+    player.facing = 1;
+    cam = 0;
+    hintEl.textContent = 'Back on the main street — walk to a building door';
+  }
+
+  function openUrl(url) {
+    hintEl.textContent = 'Opening ' + url + ' in a new tab...';
+    window.open(url, '_blank', 'noopener');
   }
 
   function personAt(x) {
@@ -366,16 +447,9 @@
     meetShown = null;
   });
 
-  function openPage(s) {
-    s.visited = true;
-    updateHUD();
-    hintEl.textContent = 'Opening ' + s.url + ' in a new tab...';
-    window.open(s.url, '_blank', 'noopener');
-  }
-
   // ---------- helpers ----------
-  function siteAt(x) {
-    return SITES.find(s => Math.abs(x - (s.x + s.width / 2)) < s.width / 2 + 6) || null;
+  function buildingAt(x) {
+    return currentBuildings().find(b => Math.abs(x - (b.x + b.width / 2)) < b.width / 2 + 6) || null;
   }
 
   function nearDoor(s) {
@@ -399,7 +473,7 @@
     player.vy += 0.45;
 
     if (player.x < 30) { player.x = 30; player.vx = 0; }
-    if (player.x > WORLD_W - 30) { player.x = WORLD_W - 30; player.vx = 0; }
+    if (player.x > worldW() - 30) { player.x = worldW() - 30; player.vx = 0; }
 
     if (player.y >= GROUND - player.h) {
       player.y = GROUND - player.h;
@@ -412,12 +486,15 @@
     // camera
     const target = player.x - W * 0.42;
     cam += (target - cam) * 0.08;
-    cam = Math.max(0, Math.min(cam, WORLD_W - W));
+    cam = Math.max(0, Math.min(cam, worldW() - W));
 
     // door hint
-    let s = siteAt(player.x);
-    if (s && nearDoor(s)) {
-      hintEl.textContent = 'Press ENTER to open ' + s.url;
+    const b = buildingAt(player.x);
+    if (b && nearDoor(b)) {
+      hintEl.textContent =
+        b.kind === 'exit' ? 'Press ENTER to go back to the main street' :
+        b.kind === 'link' ? 'Press ENTER to open ' + b.url :
+        'Press ENTER to enter ' + ((CATS.find(c => c.id === b.id) || {}).name || '');
     } else {
       hintEl.textContent = '';
     }
@@ -483,7 +560,7 @@
   }
 
   function drawBuildings() {
-    for (const s of SITES) {
+    for (const s of currentBuildings()) {
       const sx = s.x - cam;
       if (sx + s.width < -50 || sx > W + 50) continue;
       const height = Math.min(GROUND - 40, 240 + ((s.x * 7) % 90));
@@ -503,7 +580,7 @@
       }
       // sign
       ctx.fillStyle = '#1A1400';
-      const sw = s.name.length * 8 + 20;
+      const sw = Math.min(300, s.name.length * 8 + 20);
       const sh = 26;
       ctx.fillRect(sx + s.width / 2 - sw / 2, GROUND - height + 14, sw, sh);
       ctx.strokeStyle = 'rgba(212,255,40,0.6)';
@@ -512,8 +589,8 @@
       ctx.fillStyle = '#D4FF28';
       ctx.font = '13px monospace';
       ctx.textAlign = 'center';
-      // draw the Aztec symbol logo on the home building sign
-      if (s.id === 'home' && logoImg.complete && logoImg.naturalWidth) {
+      // show a small logo on the first (home-ish) building
+      if (s.kind === 'cat' && s.id === CATS[0].id && logoImg.complete && logoImg.naturalWidth) {
         ctx.drawImage(logoImg, sx + s.width / 2 - sw / 2 + 5, GROUND - height + 17, 20, 20);
         ctx.fillText(s.name, sx + s.width / 2 + 14, GROUND - height + 31);
       } else {
@@ -528,7 +605,7 @@
       ctx.fillRect(dx - 8, GROUND - 34, 6, 34);
       ctx.fillRect(dx + 2, GROUND - 34, 6, 34);
       // lamp above door
-      if (s.visited) {
+      if (visitedIds.has(s.id)) {
         ctx.fillStyle = '#D4FF28';
         ctx.shadowColor = '#D4FF28';
         ctx.shadowBlur = 14;
@@ -543,7 +620,7 @@
 
   function drawLamps() {
     ctx.fillStyle = '#2E0700';
-    for (let lx = 60; lx < WORLD_W; lx += 220) {
+    for (let lx = 60; lx < worldW(); lx += 220) {
       const sx = lx - cam;
       if (sx < -30 || sx > W + 30) continue;
       ctx.fillRect(sx, GROUND - 110, 5, 110);
@@ -740,12 +817,12 @@
     ctx.fillRect(mx, my, mw, mh);
     ctx.strokeStyle = 'rgba(212,255,40,0.5)';
     ctx.strokeRect(mx, my, mw, mh);
-    const scale = mw / WORLD_W;
-    for (const s of SITES) {
+    const scale = mw / worldW();
+    for (const s of currentBuildings()) {
       const bx = mx + s.x * scale;
-      ctx.fillStyle = s.visited ? '#D4FF28' : '#918B7F';
+      ctx.fillStyle = visitedIds.has(s.id) ? '#D4FF28' : '#918B7F';
       ctx.beginPath();
-      ctx.arc(bx, my + mh / 2, s.visited ? 5 : 3.5, 0, Math.PI * 2);
+      ctx.arc(bx, my + mh / 2, visitedIds.has(s.id) ? 5 : 3.5, 0, Math.PI * 2);
       ctx.fill();
     }
     // player
