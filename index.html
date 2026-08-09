@@ -199,8 +199,10 @@
     H = window.innerHeight - BORDER_O * 2;
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
-    canvas.style.width = W + 'px';
-    canvas.style.height = H + 'px';
+    // box-sizing:border-box means the CSS size must include the borders,
+    // so the content area matches the backing store exactly (no blur)
+    canvas.style.width = (W + BORDER_L + BORDER_O) + 'px';
+    canvas.style.height = (H + BORDER_O * 2) + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels, rendered sharp
     ctx.imageSmoothingEnabled = true;
     GROUND = H - 70;
