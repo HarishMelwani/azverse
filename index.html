@@ -1058,9 +1058,59 @@
     ctx.fill();
   }
 
+  function drawTrees() {
+    const bs = currentBuildings();
+    // plant trees in the gaps between buildings + after the last one
+    const spots = [];
+    for (let i = 0; i < bs.length - 1; i++) {
+      const gap = (bs[i + 1].x - (bs[i].x + bs[i].width));
+      if (gap >= 140) {
+        const t = bs[i].x + bs[i].width + gap * 0.5;
+        spots.push(t);
+        if (gap >= 420) spots.push(bs[i].x + bs[i].width + gap * 0.8);
+      }
+    }
+    const last = bs[bs.length - 1];
+    spots.push(last.x + last.width + 60, last.x + last.width + 110);
+
+    for (const tx of spots) {
+      const sx = tx - cam;
+      if (sx < -80 || sx > W + 80) continue;
+      // ground shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(sx, GROUND + 2, 22, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // trunk
+      ctx.fillStyle = '#4a3420';
+      ctx.fillRect(sx - 4, GROUND - 58, 8, 58);
+      ctx.fillStyle = '#3a2818';
+      ctx.fillRect(sx - 4, GROUND - 58, 3, 58);
+      // foliage (layered dark-green puffs with chartreuse accent)
+      const base = GROUND - 62;
+      ctx.fillStyle = '#12331f';
+      ctx.beginPath();
+      ctx.arc(sx, base, 26, 0, Math.PI * 2);
+      ctx.arc(sx - 18, base + 8, 18, 0, Math.PI * 2);
+      ctx.arc(sx + 18, base + 8, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1c4a2c';
+      ctx.beginPath();
+      ctx.arc(sx - 6, base - 8, 18, 0, Math.PI * 2);
+      ctx.arc(sx + 8, base - 6, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(212,255,40,0.35)';
+      ctx.beginPath();
+      ctx.arc(sx - 4, base - 10, 8, 0, Math.PI * 2);
+      ctx.arc(sx + 9, base - 12, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function render() {
     drawBackdrop();
     drawBuildings();
+    drawTrees();
     drawLamps();
     drawStreet();
     drawCharacters();
