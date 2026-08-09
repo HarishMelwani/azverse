@@ -225,16 +225,9 @@
 
   // ---------- world / categories ----------
   const CATS = [
-    { id: 'general',    name: 'General',               emoji: '🌐', color: '#FF1A1A', links: [
+    { id: 'headquarters', name: 'Headquarters',        emoji: '🏢', color: '#FF1A1A', links: [
       { name: 'Aztec Network',       url: 'https://aztec.network/',                        },
       { name: 'Aztec Blog',          url: 'https://aztec.network/blog',                    },
-    ]},
-    { id: 'community',  name: 'Community',             emoji: '🌍', color: '#2BFAE9', links: [
-      { name: 'X Aztec Network',     url: 'https://x.com/aztecnetwork',                    },
-      { name: 'X Aztec Labs',        url: 'https://x.com/AztecLabs_',                      },
-      { name: 'X Aztec Foundation',  url: 'https://x.com/aztecFND',                        },
-      { name: 'X Aztec Dev',         url: 'https://x.com/Aztec_Dev',                       },
-      { name: 'YouTube',             url: 'https://www.youtube.com/channel/UCyr94cC0lyNJkyCmmLwbh7A', },
     ]},
     { id: 'developers', name: 'Developers',            emoji: '👩‍💻', color: '#CC24C3', links: [
       { name: 'Aztec Docs',          url: 'https://docs.aztec.network/',                   },
@@ -251,6 +244,13 @@
       { name: 'Dashtec',             url: 'https://dashtec.xyz/',                          },
       { name: 'Aztec Vision',        url: 'https://aztec.vision/',                         },
       { name: 'AztecScan',           url: 'https://aztecscan.xyz/',                        },
+    ]},
+    { id: 'community',  name: 'Community',             emoji: '🌍', color: '#2BFAE9', links: [
+      { name: 'X Aztec Network',     url: 'https://x.com/aztecnetwork',                    },
+      { name: 'X Aztec Labs',        url: 'https://x.com/AztecLabs_',                      },
+      { name: 'X Aztec Foundation',  url: 'https://x.com/aztecFND',                        },
+      { name: 'X Aztec Dev',         url: 'https://x.com/Aztec_Dev',                       },
+      { name: 'YouTube',             url: 'https://www.youtube.com/channel/UCyr94cC0lyNJkyCmmLwbh7A', },
     ]},
   ];
 
@@ -413,7 +413,7 @@
   bindTap('btn-enter', () => tryEnter());
 
   // ---------- click/tap a building to walk to it and enter ----------
-  const ACCEL = 1.1, MAX_SPEED = 7.5;
+  const ACCEL = 1.5, MAX_SPEED = 10;
   let tapTarget = null; // { b, door } building to walk to & enter
   let tapX = null;      // plain walk target
   canvas.addEventListener('click', (e) => {
