@@ -348,7 +348,7 @@
 
   function reset() {
     player = {
-      x: currentBuildings()[0].x + currentBuildings()[0].width / 2,
+      x: street.isMain ? 60 : (currentBuildings()[0].x + currentBuildings()[0].width / 2),
       y: GROUND - 34,
       vx: 0, vy: 0, w: 22, h: 44,
       facing: 1, walkPhase: 0, grounded: true,
