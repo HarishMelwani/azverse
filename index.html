@@ -374,6 +374,10 @@
   window.addEventListener('keydown', (e) => {
     const k = e.key;
     keys[k] = true;
+    // manual movement cancels any tap-walk target
+    if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'a' || k === 'd' || k === 'A' || k === 'D') {
+      tapTarget = null; tapX = null;
+    }
     if (k === 'Enter') { e.preventDefault(); tryEnter(); }
     if (k === 'p' || k === 'P') { paused = !paused; hintEl.textContent = paused ? 'PAUSED' : ''; }
     if (k === 'm' || k === 'M') { minimap = !minimap; }
@@ -407,6 +411,56 @@
     if (player.grounded) { player.vy = -9.5; player.grounded = false; }
   });
   bindTap('btn-enter', () => tryEnter());
+
+  // ---------- click/tap a building to walk to it and enter ----------
+  const ACCEL = 1.1, MAX_SPEED = 7.5;
+  let tapTarget = null; // { b, door } building to walk to & enter
+  let tapX = null;      // plain walk target
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const wx = (e.clientX - rect.left) + cam; // world x of the click
+    const b = currentBuildings().find(b2 => wx >= b2.x - 8 && wx <= b2.x + b2.width + 8);
+    if (!b) {
+      tapX = Math.max(30, Math.min(wx, worldW() - 30));
+      return;
+    }
+    const door = b.x + b.width / 2;
+    if (Math.abs(player.x - door) > 40) {
+      tapTarget = { b, door };
+    } else {
+      enterBuilding(b);
+    }
+  });
+
+  function enterBuilding(b) {
+    if (b.kind === 'exit') exitStreet();
+    else if (b.kind === 'cat') enterCategory(b);
+    else if (b.kind === 'link') openUrl(b.url);
+  }
+
+  function stepWalking() {
+    const target = tapTarget ? tapTarget.door : tapX;
+    if (target === null) return;
+    const dx = target - player.x;
+    if (Math.abs(dx) > 6) {
+      const d = Math.sign(dx);
+      player.facing = d;
+      player.vx += d * ACCEL;
+      player.vx *= 0.82;
+      if (Math.abs(player.vx) > MAX_SPEED) player.vx = d * MAX_SPEED;
+      player.x += player.vx;
+    } else {
+      player.vx = 0;
+      if (tapTarget) {
+        const b = tapTarget.b;
+        tapTarget = null;
+        tapX = null;
+        enterBuilding(b);
+      } else {
+        tapX = null;
+      }
+    }
+  }
 
   function tryEnter() {
     const p = personAt(player.x);
@@ -484,16 +538,19 @@
 
   // ---------- update ----------
   function update(dt) {
-    const accel = 1.1, maxSpeed = 7.5;
     let dir = 0;
     if (keys['ArrowLeft'] || keys['a'] || keys['A']) dir -= 1;
     if (keys['ArrowRight'] || keys['d'] || keys['D']) dir += 1;
     if (dir !== 0) { player.facing = dir; player.walkPhase += dt * 12; }
 
-    player.vx += dir * accel;
-    player.vx *= 0.82;
-    if (Math.abs(player.vx) > maxSpeed) player.vx = Math.sign(player.vx) * maxSpeed;
-    player.x += player.vx;
+    if (!tapTarget && tapX === null) {
+      player.vx += dir * ACCEL;
+      player.vx *= 0.82;
+      if (Math.abs(player.vx) > MAX_SPEED) player.vx = Math.sign(player.vx) * MAX_SPEED;
+      player.x += player.vx;
+    } else {
+      stepWalking();
+    }
     player.y += player.vy;
     player.vy += 0.45;
 
