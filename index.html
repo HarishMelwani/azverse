@@ -660,130 +660,149 @@
       const cx = sx + s.width / 2;
       const bottom = GROUND;
 
-      // ---- tiered skyscraper silhouette (setbacks) ----
+      // ---- deterministic per-building architecture style ----
       const v = s.x * 7;
-      const tiers = 2 + ((v >> 3) % 3);            // 2-4 tiers
-      const tierH = [];
-      const tierW = [];
-      const tierTop = [];                          // y of each tier's top edge
-      let w = s.width;
-      for (let t = 0; t < tiers; t++) {
-        const h = Math.round((250 + (v % 110)) * (t === 0 ? 1 : 0.8) - t * 10);
-        tierH.push(h);
-        tierW.push(w);
-        w = Math.max(40, Math.round(w * 0.74));
-      }
-      const totalH = tierH.reduce((a, b) => a + b, 0);
-      if (totalH > GROUND - 40) {
-        const k = (GROUND - 40) / totalH;
-        for (let t = 0; t < tiers; t++) tierH[t] = Math.round(tierH[t] * k);
-      }
-      let curTop = bottom;
-      for (let t = 0; t < tiers; t++) { curTop -= tierH[t]; tierTop.push(curTop); }
-
+      const styleIdx = Math.floor(hsh(s.x) * 6); // 0..5 stable per building
+      const styles = ['glass', 'brick', 'dome', 'angled', 'neon', 'stepped'];
+      const style = styles[styleIdx];
+      const baseH = Math.min(GROUND - 40, 260 + (v % 110));
       const light = shade(s.color, 0.5);
       const dark = shade(s.color, -0.55);
+      const rnd = (a, b) => a + hsh(s.x * 1000 + a * 31 + b * 17) * (b - a);
 
-      // draw each tier top-to-bottom
-      for (let t = 0; t < tiers; t++) {
-        const tx = cx - tierW[t] / 2;
-        const top = tierTop[t];
-        const h = tierH[t];
-
-        // facade gradient
+      function facadeRect(tx, top, w, h) {
         const grad = ctx.createLinearGradient(0, top, 0, top + h);
         grad.addColorStop(0, light);
         grad.addColorStop(0.6, s.color);
         grad.addColorStop(1, dark);
         ctx.fillStyle = grad;
-        ctx.fillRect(tx, top, tierW[t], h);
-
-        // setback ledge (light catch on the step)
-        if (t > 0) {
-          ctx.fillStyle = 'rgba(255,255,255,0.22)';
-          ctx.fillRect(tx, top - 1, tierW[t], 2);
-        }
-        // vertical edge highlights
+        ctx.fillRect(tx, top, w, h);
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
         ctx.fillRect(tx, top, 2, h);
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(tx + tierW[t] - 3, top, 3, h);
-
-        // glass curtain wall: dark wells + mullions
-        const wyStart = top + 10;
-        const wyEnd = top + h - (t === 0 ? 96 : 20);
-        ctx.fillStyle = 'rgba(0,0,0,0.28)';
-        for (let wy = wyStart; wy < wyEnd; wy += 26) {
-          for (let wx = tx + 8; wx < tx + tierW[t] - 10; wx += 24) {
-            ctx.fillRect(wx, wy, 16, 20);
-          }
-        }
-        // vertical mullions
-        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-        ctx.lineWidth = 1;
-        for (let wx = tx + 8; wx < tx + tierW[t] - 10; wx += 24) {
-          ctx.beginPath();
-          ctx.moveTo(wx + 8, wyStart);
-          ctx.lineTo(wx + 8, Math.max(wyStart, wyEnd - 1));
-          ctx.stroke();
-        }
-        // floor lines
-        ctx.strokeStyle = 'rgba(26,20,0,0.30)';
-        for (let wy = wyStart + 13; wy < wyEnd; wy += 26) {
-          ctx.beginPath();
-          ctx.moveTo(tx + 8, wy);
-          ctx.lineTo(tx + tierW[t] - 10, wy);
-          ctx.stroke();
-        }
-        // randomly lit windows (theme-neon colors)
-        for (let wy = wyStart; wy < wyEnd; wy += 26) {
-          for (let wx = tx + 8; wx < tx + tierW[t] - 10; wx += 24) {
-            const r = hsh(wx * 7.31 + wy * 3.17 + s.x);
-            if (r < 0.34) {
-              ctx.fillStyle = r < 0.18 ? 'rgba(212,255,40,0.55)' : r < 0.28 ? 'rgba(43,250,233,0.5)' : 'rgba(255,45,244,0.45)';
-              ctx.fillRect(wx + 2, wy + 2, 12, 16);
-            }
-          }
-        }
+        ctx.fillRect(tx + w - 3, top, 3, h);
       }
 
-      // ---- rooftop details ----
-      const roofY = tierTop[0];
-      const roofW = tierW[0];
-      const rv = (v >> 2) % 3;
-      if (rv === 0) {
-        // antenna spire with beacon
+      let topEdge; // y of the topmost point of the building body
+
+      if (style === 'glass') {
+        // ---- tiered glass skyscraper ----
+        const tiers = 2 + ((v >> 3) % 3);
+        const tierH = [];
+        const tierW = [];
+        const tierTop = [];
+        let w = s.width;
+        for (let t = 0; t < tiers; t++) {
+          const h = Math.round(baseH * (t === 0 ? 1 : 0.8) - t * 10);
+          tierH.push(h); tierW.push(w);
+          w = Math.max(40, Math.round(w * 0.74));
+        }
+        const totalH = tierH.reduce((a, b) => a + b, 0);
+        const k = Math.min(1, (GROUND - 40) / totalH);
+        let curTop = bottom;
+        for (let t = 0; t < tiers; t++) { curTop -= Math.round(tierH[t] * k); tierTop.push(curTop); }
+        topEdge = tierTop[0];
+        for (let t = 0; t < tiers; t++) {
+          const tx = cx - tierW[t] / 2;
+          const top = tierTop[t];
+          const h = tierH[t];
+          facadeRect(tx, top, tierW[t], h);
+          if (t > 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.22)';
+            ctx.fillRect(tx, top - 1, tierW[t], 2);
+          }
+          const wyStart = top + 10;
+          const wyEnd = top + h - (t === 0 ? 96 : 20);
+          ctx.fillStyle = 'rgba(0,0,0,0.28)';
+          for (let wy = wyStart; wy < wyEnd; wy += 26)
+            for (let wx = tx + 8; wx < tx + tierW[t] - 10; wx += 24)
+              ctx.fillRect(wx, wy, 16, 20);
+          ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+          ctx.lineWidth = 1;
+          for (let wx = tx + 8; wx < tx + tierW[t] - 10; wx += 24) {
+            ctx.beginPath();
+            ctx.moveTo(wx + 8, wyStart);
+            ctx.lineTo(wx + 8, Math.max(wyStart, wyEnd - 1));
+            ctx.stroke();
+          }
+          ctx.strokeStyle = 'rgba(26,20,0,0.30)';
+          for (let wy = wyStart + 13; wy < wyEnd; wy += 26) {
+            ctx.beginPath();
+            ctx.moveTo(tx + 8, wy);
+            ctx.lineTo(tx + tierW[t] - 10, wy);
+            ctx.stroke();
+          }
+          for (let wy = wyStart; wy < wyEnd; wy += 26)
+            for (let wx = tx + 8; wx < tx + tierW[t] - 10; wx += 24) {
+              const r = hsh(wx * 7.31 + wy * 3.17 + s.x);
+              if (r < 0.34) {
+                ctx.fillStyle = r < 0.18 ? 'rgba(212,255,40,0.55)' : r < 0.28 ? 'rgba(43,250,233,0.5)' : 'rgba(255,45,244,0.45)';
+                ctx.fillRect(wx + 2, wy + 2, 12, 16);
+              }
+            }
+        }
+        // antenna
         ctx.strokeStyle = 'rgba(255,255,255,0.7)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(cx, roofY);
-        ctx.lineTo(cx, roofY - 30);
+        ctx.moveTo(cx, topEdge);
+        ctx.lineTo(cx, topEdge - 30);
         ctx.stroke();
         ctx.save();
         ctx.fillStyle = '#FF1A1A';
         ctx.shadowColor = '#FF1A1A';
         ctx.shadowBlur = 8;
         ctx.beginPath();
-        ctx.arc(cx, roofY - 32, 2.5, 0, Math.PI * 2);
+        ctx.arc(cx, topEdge - 32, 2.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
-        // cross braces
-        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      } else if (style === 'brick') {
+        // ---- brick box with punched windows + parapet + water tower ----
+        const h = baseH;
+        const top = bottom - h;
+        topEdge = top;
+        const tx = sx + 8;
+        const w = s.width - 16;
+        facadeRect(tx, top, w, h);
+        // brick courses
+        ctx.strokeStyle = 'rgba(0,0,0,0.18)';
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(cx - 6, roofY - 6); ctx.lineTo(cx + 6, roofY - 6);
-        ctx.moveTo(cx - 5, roofY - 14); ctx.lineTo(cx + 5, roofY - 14);
-        ctx.stroke();
-      } else if (rv === 1) {
-        // rooftop water tower
-        const tt = roofY;
+        for (let yy = top + 10; yy < top + h - 90; yy += 9) {
+          ctx.beginPath();
+          ctx.moveTo(tx, yy);
+          ctx.lineTo(tx + w, yy);
+          ctx.stroke();
+        }
+        // punched windows
+        for (let wy = top + 22; wy < top + h - 96; wy += 34) {
+          for (let wx = tx + 14; wx < tx + w - 14; wx += 40) {
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(wx, wy, 22, 26);
+            const r = hsh(wx * 5.3 + wy * 2.9 + s.x);
+            if (r < 0.3) {
+              ctx.fillStyle = r < 0.15 ? 'rgba(212,255,40,0.6)' : 'rgba(43,250,233,0.55)';
+              ctx.fillRect(wx + 3, wy + 3, 16, 20);
+            } else {
+              ctx.fillStyle = 'rgba(43,250,233,0.10)';
+              ctx.fillRect(wx + 3, wy + 3, 16, 20);
+            }
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.strokeRect(wx + 3, wy + 3, 16, 20);
+          }
+        }
+        // parapet band
+        ctx.fillStyle = dark;
+        ctx.fillRect(sx, top - 10, s.width, 10);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(sx, top - 2, s.width, 2);
+        // water tower on roof
+        const tt = top - 12;
         ctx.fillStyle = '#4a3420';
         ctx.fillRect(cx - 13, tt - 16, 26, 16);
         ctx.fillStyle = '#5d4330';
         ctx.fillRect(cx - 13, tt - 16, 26, 2);
         ctx.fillStyle = '#3a2818';
         ctx.fillRect(cx - 13, tt - 8, 26, 1);
-        // cone roof
         ctx.fillStyle = '#5d4330';
         ctx.beginPath();
         ctx.moveTo(cx - 15, tt - 16);
@@ -798,23 +817,172 @@
         ctx.lineTo(cx, tt - 16);
         ctx.closePath();
         ctx.fill();
-      } else {
-        // rooftop billboard panel
-        ctx.fillStyle = 'rgba(26,20,0,0.9)';
-        ctx.fillRect(cx - roofW / 2 + 6, roofY - 24, roofW - 12, 24);
-        ctx.strokeStyle = 'rgba(212,255,40,0.6)';
+      } else if (style === 'dome') {
+        // ---- boxy base crowned with a dome ----
+        const h = baseH - 34;
+        const top = bottom - h;
+        topEdge = top - 34;
+        facadeRect(sx + 6, top, s.width - 12, h);
+        // arched/round window band near the top
+        for (let wx = sx + 26; wx < sx + s.width - 20; wx += 34) {
+          ctx.fillStyle = 'rgba(0,0,0,0.45)';
+          ctx.beginPath();
+          ctx.arc(wx, top + 16, 9, 0, Math.PI * 2);
+          ctx.fill();
+          const r = hsh(wx * 7 + s.x);
+          if (r < 0.4) {
+            ctx.fillStyle = r < 0.2 ? 'rgba(212,255,40,0.6)' : 'rgba(255,45,244,0.5)';
+            ctx.beginPath();
+            ctx.arc(wx, top + 16, 5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        // punched grid below
+        for (let wy = top + 44; wy < top + h - 96; wy += 36) {
+          for (let wx = sx + 18; wx < sx + s.width - 18; wx += 42) {
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillRect(wx, wy, 24, 28);
+            const r = hsh(wx * 4.1 + wy * 3.3 + s.x);
+            if (r < 0.28) {
+              ctx.fillStyle = 'rgba(43,250,233,0.55)';
+              ctx.fillRect(wx + 3, wy + 3, 18, 22);
+            }
+          }
+        }
+        // dome (elliptical) with gold-ish band
+        ctx.fillStyle = dark;
+        ctx.beginPath();
+        ctx.ellipse(cx, top, s.width / 2 - 4, 34, 0, Math.PI, 0);
+        ctx.closePath();
+        ctx.fill();
+        const dg = ctx.createLinearGradient(0, top - 34, 0, top);
+        dg.addColorStop(0, shade(s.color, 0.3));
+        dg.addColorStop(1, s.color);
+        ctx.fillStyle = dg;
+        ctx.beginPath();
+        ctx.ellipse(cx, top, s.width / 2 - 8, 30, 0, Math.PI, 0);
+        ctx.closePath();
+        ctx.fill();
+        // dome highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.beginPath();
+        ctx.ellipse(cx - s.width / 8, top - 12, 8, 14, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+        // spire
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, top - 30);
+        ctx.lineTo(cx, top - 46);
+        ctx.stroke();
+      } else if (style === 'angled') {
+        // ---- flat box with a sloped (triangular) roof ----
+        const h = baseH - 28;
+        const top = bottom - h;
+        topEdge = top - 24;
+        facadeRect(sx + 6, top, s.width - 12, h);
+        // big picture windows
+        for (let wy = top + 18; wy < top + h - 96; wy += 40) {
+          for (let wx = sx + 14; wx < sx + s.width - 14; wx += 46) {
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.fillRect(wx, wy, 32, 34);
+            const r = hsh(wx * 6 + wy * 4 + s.x);
+            if (r < 0.35) {
+              ctx.fillStyle = r < 0.2 ? 'rgba(212,255,40,0.55)' : 'rgba(43,250,233,0.5)';
+              ctx.fillRect(wx + 3, wy + 3, 26, 28);
+            }
+          }
+        }
+        // horizontal floor bands
+        ctx.strokeStyle = 'rgba(26,20,0,0.25)';
         ctx.lineWidth = 1;
-        ctx.strokeRect(cx - roofW / 2 + 6, roofY - 24, roofW - 12, 24);
-        // little glowing text strip
-        ctx.font = '8px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(212,255,40,0.9)';
-        ctx.fillText(s.name.toUpperCase().slice(0, 9), cx, roofY - 8);
-        ctx.textAlign = 'left';
+        for (let wy = top + 52; wy < top + h - 96; wy += 40) {
+          ctx.beginPath();
+          ctx.moveTo(sx + 6, wy);
+          ctx.lineTo(sx + s.width - 6, wy);
+          ctx.stroke();
+        }
+        // sloped roof
+        ctx.fillStyle = dark;
+        ctx.beginPath();
+        ctx.moveTo(sx - 2, top);
+        ctx.lineTo(cx, top - 24);
+        ctx.lineTo(sx + s.width + 2, top);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath();
+        ctx.moveTo(sx - 2, top);
+        ctx.lineTo(cx, top - 24);
+        ctx.lineTo(cx, top);
+        ctx.closePath();
+        ctx.fill();
+        // dormer window
+        ctx.fillStyle = 'rgba(26,20,0,0.85)';
+        ctx.fillRect(cx - 8, top - 20, 16, 20);
+        ctx.fillStyle = 'rgba(212,255,40,0.5)';
+        ctx.fillRect(cx - 5, top - 17, 10, 14);
+      } else if (style === 'neon') {
+        // ---- narrow tower with horizontal neon light bands ----
+        const h = baseH;
+        const top = bottom - h;
+        topEdge = top;
+        facadeRect(sx + 10, top, s.width - 20, h);
+        // glowing horizontal bands
+        for (let wy = top + 12; wy < top + h - 96; wy += 26) {
+          ctx.save();
+          ctx.fillStyle = s.color;
+          ctx.shadowColor = s.color;
+          ctx.shadowBlur = 10;
+          ctx.fillRect(sx + 10, wy, s.width - 20, 3);
+          ctx.restore();
+        }
+        // dark recessed slits between bands
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        for (let wy = top + 18; wy < top + h - 96; wy += 26) {
+          ctx.fillRect(sx + 14, wy, s.width - 28, 12);
+        }
+      } else {
+        // ---- stepped ziggurat (broad stacked steps) ----
+        const steps = 3 + ((v >> 3) % 2); // 3-4
+        const tierH = [];
+        const tierW = [];
+        const tierTop = [];
+        let w = s.width - 8;
+        for (let t = 0; t < steps; t++) {
+          tierH.push(Math.round(baseH / steps));
+          tierW.push(w);
+          w = Math.max(46, Math.round(w * 0.82));
+        }
+        const totalH = tierH.reduce((a, b) => a + b, 0);
+        const k = Math.min(1, (GROUND - 40) / totalH);
+        let curTop = bottom;
+        for (let t = 0; t < steps; t++) { curTop -= Math.round(tierH[t] * k); tierTop.push(curTop); }
+        topEdge = tierTop[0];
+        for (let t = 0; t < steps; t++) {
+          const tx = cx - tierW[t] / 2;
+          const top = tierTop[t];
+          const h = tierH[t];
+          facadeRect(tx, top, tierW[t], h);
+          // step lip
+          ctx.fillStyle = 'rgba(255,255,255,0.2)';
+          ctx.fillRect(tx, top, tierW[t], 2);
+          // narrow lit slit on each step face
+          for (let wy = top + 12; wy < top + h - 6; wy += 24) {
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillRect(tx + tierW[t] * 0.25, wy, tierW[t] * 0.5, 6);
+            const r = hsh(wy * 3 + s.x);
+            if (r < 0.3) {
+              ctx.fillStyle = r < 0.15 ? 'rgba(212,255,40,0.6)' : 'rgba(255,45,244,0.5)';
+              ctx.fillRect(tx + tierW[t] * 0.25 + 1, wy + 1, tierW[t] * 0.5 - 2, 4);
+            }
+          }
+        }
       }
+
       // roof cap glint
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillRect(sx, roofY, s.width, 2);
+      ctx.fillRect(sx, topEdge, s.width, 2);
 
       // ---- glass lobby (ground floor) ----
       const lobbyH = 96;
@@ -834,8 +1002,7 @@
       ctx.fillRect(sx, lobbyTop, s.width, 6);
 
       // ---- neon sign on top tier ----
-      const topTier = tiers - 1;
-      const signY = tierTop[topTier] - 4;
+      const signY = topEdge - 4;
       ctx.font = '13px monospace';
       ctx.textAlign = 'center';
       const hasLogo = s.kind === 'cat' && s.id === CATS[0].id && logoImg.complete && logoImg.naturalWidth;
