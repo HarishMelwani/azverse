@@ -79,6 +79,22 @@
   }
   #progress i { display: block; height: 100%; width: 0%; background: var(--chartreuse); transition: width .3s; }
 
+  #credit {
+    position: fixed;
+    bottom: 8px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 45;
+    font-family: monospace;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: rgba(242,238,225,0.55);
+    text-shadow: 0 0 6px rgba(0,0,0,0.9);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  #credit a { color: rgba(212,255,40,0.7); text-decoration: none; pointer-events: auto; }
+  #credit a:active { color: var(--chartreuse); }
+
   /* ---- touch controls (mobile only) ---- */
   #touch-controls {
     position: fixed;
@@ -174,6 +190,7 @@
     <span>Met <b id="people">0</b> / 9</span>
   </div>
   <div id="progress"><i id="progress-bar"></i></div>
+  <div id="credit">made with <span class="heart">💜</span> by <a href="https://x.com/harishmelwanii" target="_blank" rel="noopener">0xHarish</a></div>
   <div id="wrap">
     <div id="hint"></div>
     <canvas id="game" width="960" height="520"></canvas>
